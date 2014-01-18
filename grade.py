@@ -5,25 +5,18 @@ Note, each assignment will need is own GRADE_FUNCTION. Write a function for
 grading that particular assignnment and set the value of GRADE_FUNCTION to
 that function's name.
 
-To Use:
-- Go to moodle and export grades for the assignment you want and your group
-    (these will be empty to start unless you have already done some grading)
-- Download all of the submissions for this assignment from moodle
-- Run python grade.py [directory with submissions] [grade export csv]
-- The grade export csv has been overwritten with the grades from the submissions
-
 """
 
 import os
 import sys
+import shutil
+import zipfile
 import grade_functions
 from os.path import expanduser
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
-# 'CSCI1300-S14-Hoenigman-Assignment 1 submit-8043'
-# 'CSCI1300-S14-Hoenigman Grades-20140118_0602-comma_separated'
-
-GRADE_FUNCTION = grade_functions.grade_assign_1
+# GRADE_FUNCTION = grade_functions.grade_assign_1
+GRADE_FUNCTION = grade_functions.grade_recitation_1
 
 def get_moodle_students(filename):
     """
@@ -78,15 +71,32 @@ def grade_assignment(submission_dir, submission_names, grade_function):
         grades[name] = grade_function(submission_dir, submissions)
     return grades
 
-def copy_files_from_downloads():
+def copy_files_from_downloads(assignment_name):
     home = expanduser('~')
     downloads = os.path.join(home, 'Downloads')
     for filename in os.listdir(downloads):
         if COURSE_NAME in filename:
             if 'submit' in filename.lower():
-                shutil.copy(os.path.join(downloads, filename), os.path.join(os.getcswd(), 'Submissions'))
+                if not os.path.exists(assignment_name + '_submissions'):
+                    os.mkdir(assignment_name + '_submissions')
+                try:
+                    submission_dir = os.path.join(os.getcwd(), assignment_name + '_submissions')
+                    shutil.copy(os.path.join(downloads, filename), submission_dir)
+                    zipfile.ZipFile(os.path.join(submission_dir, filename)).extractall(submission_dir)
+                except Exception as e:
+                    print('Error copying zip archive: {}'.format(e))
+
             else:
-                shutil.copy(os.path.join(downloads, filename), os.path.join(os.getcswd(), 'Grade_csvs'))
+                if not os.path.exists(assignment_name + '_csv'):
+                    os.mkdir(assignment_name + '_csv')
+                try:
+                    grade_csv_dir = os.path.join(os.getcwd(), assignment_name + '_csv')
+                    shutil.copy(os.path.join(downloads, filename), grade_csv_dir)
+                    grade_csv = os.path.join(grade_csv_dir, filename)
+                except Exception as e:
+                    print('Error copying csv file: {}'.format(e))
+
+    return submission_dir, grade_csv
 
 def generate_grade_csv(grades, moodle_grade_csv):
     lines = open(moodle_grade_csv).readlines()
@@ -104,17 +114,10 @@ def generate_grade_csv(grades, moodle_grade_csv):
                 line = line.replace('-', '0')
             f.write(line)
 
-def create_grading_directories():
-    try:
-        os.mkdir('Failed_Submissions')
-        os.mkdir('Submissions')
-        os.mkdir('Grade_csvs')
-    except OSError:
-        pass
-
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        submission_dir, moodle_grade_csv = copy_files_from_downloads()
+    if len(sys.argv) == 2:
+        assignment_name = sys.argv[1]
+        submission_dir, moodle_grade_csv = copy_files_from_downloads(assignment_name)
     elif len(sys.argv) == 3:
         submission_dir = sys.argv[1]
         moodle_grade_csv = sys.argv[2]
@@ -125,4 +128,6 @@ if __name__ == '__main__':
     submissions = get_submissions(submission_dir, names)
     grades = grade_assignment(submission_dir, submissions, GRADE_FUNCTION)
     generate_grade_csv(grades, moodle_grade_csv)
-    print('All failed submissions have been copies to directory "Failed_Submissions"')
+
+    failed_dir = 'failed_' + submission_dir.split('/')[-1]
+    print('All failed submissions have been copies to directory "{}"'.format(failed_dir))
