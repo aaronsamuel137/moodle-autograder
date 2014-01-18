@@ -17,8 +17,11 @@ To Use:
 import os
 import sys
 import grade_functions
+from os.path import expanduser
 
-CU_CSV_FOLDER = 'mycuinfo_csvs'
+COURSE_NAME = 'CSCI1300-S14-Hoenigman'
+# 'CSCI1300-S14-Hoenigman-Assignment 1 submit-8043'
+# 'CSCI1300-S14-Hoenigman Grades-20140118_0602-comma_separated'
 
 GRADE_FUNCTION = grade_functions.grade_assign_1
 
@@ -75,6 +78,16 @@ def grade_assignment(submission_dir, submission_names, grade_function):
         grades[name] = grade_function(submission_dir, submissions)
     return grades
 
+def copy_files_from_downloads():
+    home = expanduser('~')
+    downloads = os.path.join(home, 'Downloads')
+    for filename in os.listdir(downloads):
+        if COURSE_NAME in filename:
+            if 'submit' in filename.lower():
+                shutil.copy(os.path.join(downloads, filename), os.path.join(os.getcswd(), 'Submissions'))
+            else:
+                shutil.copy(os.path.join(downloads, filename), os.path.join(os.getcswd(), 'Grade_csvs'))
+
 def generate_grade_csv(grades, moodle_grade_csv):
     lines = open(moodle_grade_csv).readlines()
 
@@ -91,8 +104,18 @@ def generate_grade_csv(grades, moodle_grade_csv):
                 line = line.replace('-', '0')
             f.write(line)
 
+def create_grading_directories():
+    try:
+        os.mkdir('Failed_Submissions')
+        os.mkdir('Submissions')
+        os.mkdir('Grade_csvs')
+    except OSError:
+        pass
+
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
+    if len(sys.argv) == 1:
+        submission_dir, moodle_grade_csv = copy_files_from_downloads()
+    elif len(sys.argv) == 3:
         submission_dir = sys.argv[1]
         moodle_grade_csv = sys.argv[2]
     else:
