@@ -17,9 +17,13 @@ sure it is calling the correct grading function.
 Usage
 =====
 
-- Go to moodle and export grades for the assignment you want and your group
-(these will be empty to start unless you have already done some grading)
-- Download all of the submissions for this assignment from moodle
+- Go to moodle and export grades for the assignment you want.
+To do this, go to Grade administration -> Export -> Plain text file. Then select your
+grade group under the "Visible groups" drop down. Then go to the bottom and click
+"Select all/none" to unselect all assignments. Then you can easily select the assignment
+be graded now. This will download a csv of all student names with an empty field ready for
+grades.
+- Download all of the submissions for this assignment from moodle.
 - Run the following:
 
 ```
@@ -27,4 +31,6 @@ python grade.py [directory with submissions] [grade export csv]
 ```
 
 - The grade export csv has been overwritten with the grades from the submissions
-- Go to moodle and select import csv. Import the modified csv.
+- Go to moodle and select import csv. Import the modified csv. Be sure to change 
+the dropdowns "Map to" and "Map from" under "Identify user by" to say "Email address".
+Also change change to the grade field to map to the correct assignment.
