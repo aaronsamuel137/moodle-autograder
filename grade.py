@@ -2,7 +2,7 @@
 grade.py - A tool for autograding with moodle
 
 Note, each assignment will need is own GRADE_FUNCTION. Write a function for
-grading that particular assignnment and set the value of GRADE_FUNCTION to
+grading that particular assignment and set the value of GRADE_FUNCTION to
 that function's name.
 
 """
@@ -15,8 +15,22 @@ import grade_functions
 from os.path import expanduser
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
-# GRADE_FUNCTION = grade_functions.grade_assign_1
-GRADE_FUNCTION = grade_functions.grade_recitation_1
+
+# put references to new grading functions here
+ASSIGNMENTS = {
+    'assign_1': grade_functions.grade_assign_1,
+    'recitation_1': grade_functions.grade_recitation_1,
+}
+
+def get_assignment_function(assignment):
+    """Returns a reference to the grading function for the given assignment."""
+    try:
+        return ASSIGNMENTS[assignment]
+    except KeyError:
+        print('ERROR: Invalid assignment name. Please enter one of:')
+        for assign in ASSIGNMENTS:
+            print('\t' + assign)
+        exit()
 
 def get_moodle_students(filename):
     """
@@ -72,6 +86,12 @@ def grade_assignment(submission_dir, submission_names, grade_function):
     return grades
 
 def copy_files_from_downloads(assignment_name):
+    """
+    Copies the zip archive of submissions and grade csv from moodle into the autograder
+    directory. Each get a folder created for it to ensure organization. The zip archive
+    is extracted. Returns the names of each of these files.
+
+    """
     home = expanduser('~')
     downloads = os.path.join(home, 'Downloads')
     for filename in os.listdir(downloads):
@@ -117,17 +137,20 @@ def generate_grade_csv(grades, moodle_grade_csv):
 if __name__ == '__main__':
     if len(sys.argv) == 2:
         assignment_name = sys.argv[1]
+        grading_function = get_assignment_function(assignment_name)
         submission_dir, moodle_grade_csv = copy_files_from_downloads(assignment_name)
-    elif len(sys.argv) == 3:
-        submission_dir = sys.argv[1]
-        moodle_grade_csv = sys.argv[2]
+    elif len(sys.argv) == 4:
+        assignment_name = sys.argv[1]
+        grading_function = get_assignment_function(assignment_name)
+        submission_dir = sys.argv[2]
+        moodle_grade_csv = sys.argv[3]
     else:
         print('Error! Wrong number of arguments')
 
     names = get_moodle_students(moodle_grade_csv)
     submissions = get_submissions(submission_dir, names)
-    grades = grade_assignment(submission_dir, submissions, GRADE_FUNCTION)
+    grades = grade_assignment(submission_dir, submissions, grading_function)
     generate_grade_csv(grades, moodle_grade_csv)
 
     failed_dir = 'failed_' + submission_dir.split('/')[-1]
-    print('All failed submissions have been copies to directory "{}"'.format(failed_dir))
+    print('All failed submissions have been copied to directory "{}"'.format(failed_dir))

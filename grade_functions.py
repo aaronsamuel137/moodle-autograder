@@ -9,6 +9,14 @@ import zipfile
 import os
 import shutil
 
+# constants for printing colors to the terminal
+PURPLE = '\033[95m'
+BLUE = '\033[94m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+ENDC = '\033[0m'
+
 IMAGE_EXT = {'gif', 'jpg', 'png'}
 
 def get_extension(filename):
@@ -19,7 +27,6 @@ def grade_assign_1(submission_dir, submissions):
     files = []
     reasons = []
 
-    failed = True
     for submission in submissions:
         extensions.add(get_extension(submission))
         files.append(submission)
@@ -32,24 +39,25 @@ def grade_assign_1(submission_dir, submissions):
                 names = archive.namelist()
                 for filename in names:
                     extensions.add(get_extension(filename))
-                    files.append(filename)
-                if 'py' not in extensions:
-                    reasons.append('Missing py file')
-                if not any(ext in extensions for ext in IMAGE_EXT):
-                    reasons.append('Missing image file')
-                if len(reasons) == 0:
-                    failed = False
+                    files.append('\t' + filename)
+
             except Exception as e:
                 reasons.append('Invalid zip file')
-    if failed:
+
+    if 'py' not in extensions:
+        reasons.append('Missing py file')
+    if not any(ext in extensions for ext in IMAGE_EXT):
+        reasons.append('Missing image file')
+
+    if len(reasons) > 0: # Did not get full credit from autograder
         message = 'Autograder failed for student {}'.format(submissions[0].split('_')[0])
-        print('{}\n{}'.format(message, '-' * len(message)))
+        print(RED + '{}\n{}'.format(message, '-' * len(message)) + ENDC)
         print('\tStudent submitted the following files:')
         for f in files:
-            print('\t\t{}'.format(f))
+            print(BLUE + '\t\t{}'.format(f) + ENDC)
         print('\n\tReason(s) for failure:')
         for reason in reasons:
-            print('\t\t{}'.format(reason))
+            print(BLUE + '\t\t{}'.format(reason) + ENDC)
 
         failed_dir = 'failed_' + submission_dir.split('/')[-1]
         if not os.path.exists(failed_dir):
@@ -57,7 +65,7 @@ def grade_assign_1(submission_dir, submissions):
         for submission in submissions:
             shutil.copy(os.path.join(submission_dir, submission), failed_dir)
 
-        print('Autgrader gave grade: 50.\nFeel free to edit in the csv before submitting')
+        print('\n\tAutgrader gave grade: 50.\n\tIf this is incorrect, edit the grade in the csv before submitting\n\n\n')
         return 50
 
     return 100
