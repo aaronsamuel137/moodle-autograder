@@ -16,6 +16,10 @@ from os.path import expanduser
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
 
+# constants for printing colors
+GREEN = '\033[92m'
+ENDC = '\033[0m'
+
 # put references to new grading functions here
 ASSIGNMENTS = {
     'assign_1': grade_functions.grade_assign_1,
@@ -162,4 +166,5 @@ if __name__ == '__main__':
     generate_grade_csv(grades, moodle_grade_csv)
 
     failed_dir = 'failed_' + submission_dir.split('/')[-1]
-    print('All failed submissions have been copied to directory "{}"\n'.format(failed_dir))
+    print(GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir))
+    print('This is just for your information. All submissions have been given full credit for this week\n' + ENDC)

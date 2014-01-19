@@ -50,7 +50,7 @@ def grade_assign_1(submission_dir, submissions):
         reasons.append('Missing image file')
 
     if len(reasons) > 0: # Did not get full credit from autograder
-        message = 'Autograder failed for student {}'.format(submissions[0].split('_')[0])
+        message = 'Autograder output for student {}'.format(submissions[0].split('_')[0])
         print(RED + '{}\n{}'.format(message, '-' * len(message)) + ENDC)
         print('\tStudent submitted the following files:')
         for f in files:
@@ -64,9 +64,7 @@ def grade_assign_1(submission_dir, submissions):
             os.mkdir(failed_dir)
         for submission in submissions:
             shutil.copy(os.path.join(submission_dir, submission), failed_dir)
-        grade = YELLOW + '50' + ENDC
-        print('\n\tAutgrader gave grade: {}.\n\tIf this is incorrect, edit the grade in the csv before submitting\n\n\n'.format(grade))
-        return 50
+        print('\n')
 
     return 100
 
