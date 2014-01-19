@@ -46,8 +46,8 @@ def get_moodle_students(filename):
     names = []
     for line in lines[1:]:
         fields = line.split(',')
-        firstname = fields[0].replace('"', '').strip()
-        lastname = fields[1].replace('"', '').strip()
+        firstname = fields[0].replace('"', '').replace("'", '').strip()
+        lastname = fields[1].replace('"', '').replace("'", '').strip()
         name = "{} {}".format(firstname, lastname)
         names.append(name)
     return names
