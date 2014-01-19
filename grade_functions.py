@@ -64,8 +64,8 @@ def grade_assign_1(submission_dir, submissions):
             os.mkdir(failed_dir)
         for submission in submissions:
             shutil.copy(os.path.join(submission_dir, submission), failed_dir)
-
-        print('\n\tAutgrader gave grade: 50.\n\tIf this is incorrect, edit the grade in the csv before submitting\n\n\n')
+        grade = YELLOW + '50' + ENDC
+        print('\n\tAutgrader gave grade: {}.\n\tIf this is incorrect, edit the grade in the csv before submitting\n\n\n'.format(grade))
         return 50
 
     return 100

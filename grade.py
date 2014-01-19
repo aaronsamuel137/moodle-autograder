@@ -119,6 +119,10 @@ def copy_files_from_downloads(assignment_name):
     return submission_dir, grade_csv
 
 def generate_grade_csv(grades, moodle_grade_csv):
+    """
+    Writes over the moodle_grade_csv file with the grades added in place of the '-'.
+
+    """
     lines = open(moodle_grade_csv).readlines()
 
     with open(moodle_grade_csv, 'w') as f:
@@ -135,10 +139,13 @@ def generate_grade_csv(grades, moodle_grade_csv):
             f.write(line)
 
 if __name__ == '__main__':
+    # run with one arg: automatically copy files from Downloads
     if len(sys.argv) == 2:
         assignment_name = sys.argv[1]
         grading_function = get_assignment_function(assignment_name)
         submission_dir, moodle_grade_csv = copy_files_from_downloads(assignment_name)
+
+    # run with three args: specify files to use for grading
     elif len(sys.argv) == 4:
         assignment_name = sys.argv[1]
         grading_function = get_assignment_function(assignment_name)
@@ -153,4 +160,4 @@ if __name__ == '__main__':
     generate_grade_csv(grades, moodle_grade_csv)
 
     failed_dir = 'failed_' + submission_dir.split('/')[-1]
-    print('All failed submissions have been copied to directory "{}"'.format(failed_dir))
+    print('All failed submissions have been copied to directory "{}"\n'.format(failed_dir))
