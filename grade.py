@@ -1,9 +1,9 @@
 """
 grade.py - A tool for autograding with moodle
 
-Note, each assignment will need is own GRADE_FUNCTION. Write a function for
-grading that particular assignment and set the value of GRADE_FUNCTION to
-that function's name.
+Each assignment gets it own function for grading in grade_functions.py.
+To add a new assignment, add the function to grade_functions.py and then
+put a reference to it in the global ASSIGNMENTS dictionary.
 
 """
 
@@ -132,10 +132,12 @@ def generate_grade_csv(grades, moodle_grade_csv):
             firstname = fields[0].replace('"', '').strip()
             lastname = fields[1].replace('"', '').strip()
             name = "{} {}".format(firstname, lastname)
+            fields.pop()
             if name in grades:
-                line = line.replace('-', str(grades[name]))
+                fields.append(str(grades[name]))
             else:
-                line = line.replace('-', '0')
+                fields.append('0')
+            line = ','.join(fields) + '\n'
             f.write(line)
 
 if __name__ == '__main__':
