@@ -16,11 +16,11 @@ Usage
 1. Go to moodle and export grades for the assignment you want.
 To do this, go to Grade administration -> Export -> Plain text file. Then select your
 grade group under the "Visible groups" drop down. Then go to the bottom and click
-"Select all/none" to unselect all assignments. Then you can easily select the assignment
+"Select all/none" to unselect all assignments. Then select the single assignment to
 be graded now. This will download a csv of all student names with an empty field ready for
 grades.
 2. Download all of the submissions for this assignment from moodle.
-3. Run the autograder in one of the two ways specified below.
+3. Run the autograder in one of the two ways specified under "Running the Autograder".
 
   The autograder will first print a list of all the students it couldn't find submissions
 for who are registered on moodle.
