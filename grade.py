@@ -87,12 +87,12 @@ def grade_assignment(submission_dir, submission_names, grade_script):
     original_dir = os.path.abspath(os.getcwd())
 
     try:
-        os.mkdir('tmp')
+        os.mkdir('autograder_tmpdir')
     except:
-        shutil.rmtree('tmp')
-        os.mkdir('tmp')
+        shutil.rmtree('autograder_tmpdir')
+        os.mkdir('autograder_tmpdir')
 
-    os.chdir('tmp')
+    os.chdir('autograder_tmpdir')
     tmp_dir = os.path.abspath(os.getcwd())
 
     for name, submissions in submission_names.items():
@@ -106,10 +106,10 @@ def grade_assignment(submission_dir, submission_names, grade_script):
 
                 try:
                     os.chdir(name)
-                    output = subprocess.check_call(['python3', grade_script])
-                    print('OUTPUT:', output)
+                    output = subprocess.check_output([grade_script])
                     output_str = output.decode().strip()
-                    # print(output_str)
+                    # grade = output_str.split('\n')[-1]
+                    print('GRADE:', output_str)
                 except Exception as err:
                     print('Error running script', err)
                 os.chdir(tmp_dir)
@@ -117,7 +117,7 @@ def grade_assignment(submission_dir, submission_names, grade_script):
                 print('Got non-zip submission:', s)
 
     os.chdir(original_dir)
-    shutil.rmtree('tmp')
+    shutil.rmtree('autograder_tmpdir')
     return grades
 
 def copy_files_from_downloads(assignment_name):
