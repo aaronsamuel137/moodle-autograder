@@ -12,6 +12,7 @@ import sys
 import shutil
 import zipfile
 import grade_functions
+import subprocess
 from os.path import expanduser
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
@@ -76,15 +77,47 @@ def get_submissions(submission_dir, names):
 
     return submission_names, submissions_not_found
 
-def grade_assignment(submission_dir, submission_names, grade_function):
+def grade_assignment(submission_dir, submission_names, grade_script):
     """
     Returns a dict where keys are the student moodle name and values are the
     student's grade.
 
     """
     grades = {}
+    original_dir = os.path.abspath(os.getcwd())
+
+    try:
+        os.mkdir('tmp')
+    except:
+        shutil.rmtree('tmp')
+        os.mkdir('tmp')
+
+    os.chdir('tmp')
+    tmp_dir = os.path.abspath(os.getcwd())
+
     for name, submissions in submission_names.items():
-        grades[name] = grade_function(submission_dir, submissions)
+        student_dir = os.mkdir(name)
+        for s in submissions:
+            if s.endswith('.zip'):
+                try:
+                    subprocess.check_call(['unzip', '-d', name, os.path.join(submission_dir, s)])
+                except Exception as err:
+                    print('Error unzipping files:', err)
+
+                try:
+                    os.chdir(name)
+                    output = subprocess.check_call(['python3', grade_script])
+                    print('OUTPUT:', output)
+                    output_str = output.decode().strip()
+                    # print(output_str)
+                except Exception as err:
+                    print('Error running script', err)
+                os.chdir(tmp_dir)
+            else:
+                print('Got non-zip submission:', s)
+
+    os.chdir(original_dir)
+    shutil.rmtree('tmp')
     return grades
 
 def copy_files_from_downloads(assignment_name):
@@ -144,9 +177,10 @@ def generate_grade_csv(grades, moodle_grade_csv):
 
 if __name__ == '__main__':
     # run with one arg: automatically copy files from Downloads
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         assignment_name = sys.argv[1]
-        grading_function = get_assignment_function(assignment_name)
+        grade_script = os.path.abspath(sys.argv[2])
+        # grading_function = get_assignment_function(assignment_name)
         submission_dir, moodle_grade_csv = copy_files_from_downloads(assignment_name)
 
     # run with three args: specify files to use for grading
@@ -160,7 +194,7 @@ if __name__ == '__main__':
 
     names = get_moodle_students(moodle_grade_csv)
     submissions, not_found = get_submissions(submission_dir, names)
-    grades = grade_assignment(submission_dir, submissions, grading_function)
+    grades = grade_assignment(submission_dir, submissions, grade_script)
     generate_grade_csv(grades, moodle_grade_csv)
 
     failed_dir = 'failed_' + submission_dir.split('/')[-1]
