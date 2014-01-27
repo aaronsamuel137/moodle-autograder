@@ -24,6 +24,7 @@ ENDC = '\033[0m'
 ASSIGNMENTS = {
     'assign_1': grade_functions.grade_assign_1,
     'recitation_1': grade_functions.grade_recitation_1,
+    'assign_2': grade_functions.grade_assign_2,
 }
 
 def get_assignment_function(assignment):
@@ -67,16 +68,13 @@ def get_submissions(submission_dir, names):
             else:
                 submission_names[name] = [filename]
 
-    print('NAMES NOT FOUND\n' + ('_' * 15))
+    submissions_not_found = []
     name_set = set(submission_names.keys())
     for name in names:
         if name not in name_set:
-            print(name)
+            submissions_not_found.append(name)
 
-    print("\n{} names found in moodle csv".format(len(names)))
-    print("{} names found in submissions download\n".format(len(submission_names)))
-
-    return submission_names
+    return submission_names, submissions_not_found
 
 def grade_assignment(submission_dir, submission_names, grade_function):
     """
@@ -92,7 +90,7 @@ def grade_assignment(submission_dir, submission_names, grade_function):
 def copy_files_from_downloads(assignment_name):
     """
     Copies the zip archive of submissions and grade csv from moodle into the autograder
-    directory. Each get a folder created for it to ensure organization. The zip archive
+    directory. Each gets a folder created for it to ensure organization. The zip archive
     is extracted. Returns the names of each of these files.
 
     """
@@ -124,7 +122,7 @@ def copy_files_from_downloads(assignment_name):
 
 def generate_grade_csv(grades, moodle_grade_csv):
     """
-    Writes over the moodle_grade_csv file with the grades added in place of the '-'.
+    Writes over the moodle_grade_csv file with the grades added in place of the old grade.
 
     """
     lines = open(moodle_grade_csv).readlines()
@@ -161,10 +159,14 @@ if __name__ == '__main__':
         print('Error! Wrong number of arguments')
 
     names = get_moodle_students(moodle_grade_csv)
-    submissions = get_submissions(submission_dir, names)
+    submissions, not_found = get_submissions(submission_dir, names)
     grades = grade_assignment(submission_dir, submissions, grading_function)
     generate_grade_csv(grades, moodle_grade_csv)
 
     failed_dir = 'failed_' + submission_dir.split('/')[-1]
-    print(GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir))
-    print('This is just for your information. All submissions have been given full credit for this week\n' + ENDC)
+
+    print('\nNAMES NOT FOUND\n' + ('_' * 15))
+    for name in not_found:
+        print(name)
+
+    print(GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
