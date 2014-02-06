@@ -13,6 +13,7 @@ import shutil
 import zipfile
 import grade_functions
 import subprocess
+import signal
 from os.path import expanduser
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
@@ -21,22 +22,16 @@ COURSE_NAME = 'CSCI1300-S14-Hoenigman'
 GREEN = '\033[92m'
 ENDC = '\033[0m'
 
-# put references to new grading functions here
-ASSIGNMENTS = {
-    'assign_1': grade_functions.grade_assign_1,
-    'recitation_1': grade_functions.grade_recitation_1,
-    'assign_2': grade_functions.grade_assign_2,
-}
+ORIG_DIR = os.getcwd()
+TMP = 'autograder_tmpdir'
 
-def get_assignment_function(assignment):
-    """Returns a reference to the grading function for the given assignment."""
-    try:
-        return ASSIGNMENTS[assignment]
-    except KeyError:
-        print('ERROR: Invalid assignment name. Please enter one of:')
-        for assign in ASSIGNMENTS:
-            print('\t' + assign)
-        exit()
+def signal_handler(signal, frame):
+    tmp_dir = '/'.join([ORIG_DIR, TMP])
+    if os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir)
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 def get_moodle_students(filename):
     """
@@ -87,12 +82,12 @@ def grade_assignment(submission_dir, submission_names, grade_script):
     original_dir = os.path.abspath(os.getcwd())
 
     try:
-        os.mkdir('autograder_tmpdir')
+        os.mkdir(TMP)
     except:
-        shutil.rmtree('autograder_tmpdir')
-        os.mkdir('autograder_tmpdir')
+        shutil.rmtree(TMP)
+        os.mkdir(TMP)
 
-    os.chdir('autograder_tmpdir')
+    os.chdir(TMP)
     tmp_dir = os.path.abspath(os.getcwd())
 
     for name, submissions in submission_names.items():
@@ -117,7 +112,7 @@ def grade_assignment(submission_dir, submission_names, grade_script):
                 print('Got non-zip submission:', s)
 
     os.chdir(original_dir)
-    shutil.rmtree('autograder_tmpdir')
+    shutil.rmtree(TMP)
     return grades
 
 def copy_files_from_downloads(assignment_name):
