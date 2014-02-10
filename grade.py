@@ -98,7 +98,9 @@ def copy_files_from_downloads(assignment_name):
     downloads = os.path.join(home, 'Downloads')
     for filename in os.listdir(downloads):
         if COURSE_NAME in filename:
-            if 'submit' in filename.lower():
+            if 'recitation' in filename.lower():
+                print(filename)
+
                 if not os.path.exists(assignment_name + '_submissions'):
                     os.mkdir(assignment_name + '_submissions')
                 try:
