@@ -8,6 +8,8 @@ put a reference to it in the global ASSIGNMENTS dictionary.
 """
 
 import os
+import threading
+import stat
 import sys
 import shutil
 import zipfile
@@ -17,6 +19,7 @@ import signal
 from os.path import expanduser
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
+DO_BREAK = False
 
 # constants for printing colors
 GREEN = '\033[92m'
@@ -72,7 +75,7 @@ def get_submissions(submission_dir, names):
 
     return submission_names, submissions_not_found
 
-def grade_assignment(submission_dir, submission_names, grade_script):
+def grade_assignment(submission_dir, submission_names, grade_dir):
     """
     Returns a dict where keys are the student moodle name and values are the
     student's grade.
@@ -96,13 +99,23 @@ def grade_assignment(submission_dir, submission_names, grade_script):
             if s.endswith('.zip'):
                 try:
                     subprocess.check_call(['unzip', '-d', name, os.path.join(submission_dir, s)])
+                    subprocess.check_call(['unzip', '-d', name, grade_dir])
+
                 except Exception as err:
                     print('Error unzipping files:', err)
 
                 try:
                     os.chdir(name)
-                    output = subprocess.check_output([grade_script])
+                    for filename in os.listdir('Assignment4_Tester'):
+                        shutil.move('Assignment4_Tester/' + filename, os.getcwd())
+                    grade_script = os.path.join(os.getcwd(), 'Grading_Script.py')
+                    print(os.listdir())
+                    st = os.stat(grade_script)
+                    os.chmod(grade_script, st.st_mode | stat.S_IEXEC)
+
+                    output = subprocess.check_output([grade_script], preexec_fn=os.setsid)
                     output_str = output.decode().strip()
+                    grades[name] = output_str
                     # grade = output_str.split('\n')[-1]
                     print('GRADE:', output_str)
                 except Exception as err:
