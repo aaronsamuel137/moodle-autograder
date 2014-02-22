@@ -212,8 +212,9 @@ def main():
     print(RED + '\nNAMES NOT FOUND\n' + ('_' * 15))
     for name in not_found:
         print(name)
+    print(ENDC)
 
-    # print(ENDC + GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
+    # print(GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
 
 if __name__ == '__main__':
     main()
