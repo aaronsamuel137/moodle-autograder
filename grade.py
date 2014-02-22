@@ -16,13 +16,16 @@ import zipfile
 import grade_functions
 import subprocess
 import signal
-from os.path import expanduser
+import argparse
+
+from subprocess import Popen, PIPE
+
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
-DO_BREAK = False
 
 # constants for printing colors
 GREEN = '\033[92m'
+RED = '\033[91m'
 ENDC = '\033[0m'
 
 ORIG_DIR = os.getcwd()
@@ -106,20 +109,29 @@ def grade_assignment(submission_dir, submission_names, grade_dir):
 
                 try:
                     os.chdir(name)
-                    for filename in os.listdir('Assignment4_Tester'):
-                        shutil.move('Assignment4_Tester/' + filename, os.getcwd())
+                    grade_dir_stem = grade_dir.split('.')[0].split('/')[-1]
+
+                    for filename in os.listdir(grade_dir_stem):
+                        shutil.move('/'.join([grade_dir_stem, filename]), os.getcwd())
+
                     grade_script = os.path.join(os.getcwd(), 'Grading_Script.py')
-                    print(os.listdir())
                     st = os.stat(grade_script)
                     os.chmod(grade_script, st.st_mode | stat.S_IEXEC)
 
-                    output = subprocess.check_output([grade_script], preexec_fn=os.setsid)
-                    output_str = output.decode().strip()
-                    grades[name] = output_str
-                    # grade = output_str.split('\n')[-1]
-                    print('GRADE:', output_str)
+                    cmd = grade_script
+                    p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+                    stdout, stderr = p.communicate()
+                    output = stderr.decode().strip()
+                    if '100' in output:
+                        grades[name] = 100
+                    else:
+                        grades[name] = 0
+                    print(GREEN, '\nOUTPUT\n------\n{}\n------\n'.format(output), ENDC)
+                    print('GRADE:', grades[name])
+
                 except Exception as err:
                     print('Error running script', err)
+
                 os.chdir(tmp_dir)
             else:
                 print('Got non-zip submission:', s)
@@ -128,47 +140,32 @@ def grade_assignment(submission_dir, submission_names, grade_dir):
     shutil.rmtree(TMP)
     return grades
 
-def copy_files_from_downloads(assignment_name):
-    """
-    Copies the zip archive of submissions and grade csv from moodle into the autograder
-    directory. Each gets a folder created for it to ensure organization. The zip archive
-    is extracted. Returns the names of each of these files.
+def extract_submissions(submissions, assignment_name):
+    if not os.path.exists(assignment_name + '_submissions'):
+        os.mkdir(assignment_name + '_submissions')
+    try:
+        submission_dir = os.path.join(os.getcwd(), assignment_name + '_submissions')
+        zipfile.ZipFile(submissions).extractall(submission_dir)
+    except Exception as e:
+        print('Error copying zip archive: {}'.format(e))
 
-    """
-    home = expanduser('~')
-    downloads = os.path.join(home, 'Downloads')
-    for filename in os.listdir(downloads):
-        if COURSE_NAME in filename:
-            if 'submit' in filename.lower():
-                if not os.path.exists(assignment_name + '_submissions'):
-                    os.mkdir(assignment_name + '_submissions')
-                try:
-                    submission_dir = os.path.join(os.getcwd(), assignment_name + '_submissions')
-                    shutil.copy(os.path.join(downloads, filename), submission_dir)
-                    zipfile.ZipFile(os.path.join(submission_dir, filename)).extractall(submission_dir)
-                except Exception as e:
-                    print('Error copying zip archive: {}'.format(e))
+    return submission_dir
 
-            else:
-                if not os.path.exists(assignment_name + '_csv'):
-                    os.mkdir(assignment_name + '_csv')
-                try:
-                    grade_csv_dir = os.path.join(os.getcwd(), assignment_name + '_csv')
-                    shutil.copy(os.path.join(downloads, filename), grade_csv_dir)
-                    grade_csv = os.path.join(grade_csv_dir, filename)
-                except Exception as e:
-                    print('Error copying csv file: {}'.format(e))
-
-    return submission_dir, grade_csv
-
-def generate_grade_csv(grades, moodle_grade_csv):
+def generate_grade_csv(grades, moodle_grade_csv, assignment_name):
     """
     Writes over the moodle_grade_csv file with the grades added in place of the old grade.
 
     """
+    if not os.path.exists(assignment_name + '_csv'):
+        os.mkdir(assignment_name + '_csv')
+    csv_dir = os.path.join(os.getcwd(), assignment_name + '_csv')
+
+    shutil.copy(moodle_grade_csv, csv_dir)
+    csv_copy = os.path.join(csv_dir, moodle_grade_csv)
+
     lines = open(moodle_grade_csv).readlines()
 
-    with open(moodle_grade_csv, 'w') as f:
+    with open(csv_copy, 'w') as f:
         f.write(lines[0])
         for line in lines[1:]:
             fields = line.split(',')
@@ -183,32 +180,44 @@ def generate_grade_csv(grades, moodle_grade_csv):
             line = ','.join(fields) + '\n'
             f.write(line)
 
-if __name__ == '__main__':
-    # run with one arg: automatically copy files from Downloads
-    if len(sys.argv) == 3:
-        assignment_name = sys.argv[1]
-        grade_script = os.path.abspath(sys.argv[2])
-        # grading_function = get_assignment_function(assignment_name)
-        submission_dir, moodle_grade_csv = copy_files_from_downloads(assignment_name)
+def main():
+    # Setup Argument Parsing
+    parser = argparse.ArgumentParser(description='Grade Moodle Submissions')
+    parser.add_argument('assignment_name', type=str,
+                       help='name of assignment')
+    parser.add_argument('moodle_csv', type=str,
+                       help='CSV file downloaded from moodle')
+    parser.add_argument('submissions', type=str,
+                       help='Zip file of all submissions')
+    parser.add_argument('grading_script', type=str,
+                       help='Submssion grading script')
 
-    # run with three args: specify files to use for grading
-    elif len(sys.argv) == 4:
-        assignment_name = sys.argv[1]
-        grading_function = get_assignment_function(assignment_name)
-        submission_dir = sys.argv[2]
-        moodle_grade_csv = sys.argv[3]
-    else:
-        print('Error! Wrong number of arguments')
+    # Parse Arguments
+    args = parser.parse_args(sys.argv[1:])
+    assignment_name = args.assignment_name
+    moodle_grade_csv = args.moodle_csv
+    submission_dir = extract_submissions(args.submissions, assignment_name)
+    grade_script = os.path.abspath(args.grading_script)
 
+    # Get student names from csv
     names = get_moodle_students(moodle_grade_csv)
+
+    # get submissions from students
     submissions, not_found = get_submissions(submission_dir, names)
+
+    # run grade script
     grades = grade_assignment(submission_dir, submissions, grade_script)
-    generate_grade_csv(grades, moodle_grade_csv)
+
+    # output grades into csv
+    generate_grade_csv(grades, moodle_grade_csv, assignment_name)
 
     failed_dir = 'failed_' + submission_dir.split('/')[-1]
 
-    print('\nNAMES NOT FOUND\n' + ('_' * 15))
+    print(RED + '\nNAMES NOT FOUND\n' + ('_' * 15))
     for name in not_found:
         print(name)
 
-    print(GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
+    print(ENDC + GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
+
+if __name__ == '__main__':
+    main()
