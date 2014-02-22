@@ -93,18 +93,30 @@ def grade_assignment(submission_dir, submission_names, grader_zip):
         for s in submissions:
             if s.endswith('.zip'):
                 try:
-                    subprocess.check_call(['unzip', '-d', name, os.path.join(submission_dir, s)])
-                    subprocess.check_call(['unzip', '-d', name, grader_zip])
+                    student_zip = os.path.join(submission_dir, s)
+                    subprocess.check_call(['unzip', '-d', name, student_zip])
 
                 except Exception as err:
                     print('Error unzipping files:', err)
 
                 try:
                     os.chdir(name)
-                    grade_dir_stem = grader_zip.split('.')[0].split('/')[-1]
 
+                    current_dir = os.listdir()
+
+                    if any(os.path.isdir(f) for f in current_dir):
+                        try:
+                            sub_dir = [f for f in current_dir if '__MACOSX' not in f][0]
+                            for filename in os.listdir(sub_dir):
+                                shutil.move('/'.join([sub_dir, filename]), os.getcwd())
+                        except:
+                            pass
+
+                    subprocess.check_call(['unzip', '-d', os.getcwd(), grader_zip])
+                    grade_dir_stem = grader_zip.split('.')[0].split('/')[-1]
                     for filename in os.listdir(grade_dir_stem):
-                        shutil.move('/'.join([grade_dir_stem, filename]), os.getcwd())
+                        if not os.path.exists(filename):
+                            shutil.move('/'.join([grade_dir_stem, filename]), os.getcwd())
 
                     grade_script = os.path.join(os.getcwd(), 'Grading_Script.py')
                     st = os.stat(grade_script)
@@ -130,6 +142,8 @@ def grade_assignment(submission_dir, submission_names, grader_zip):
 
     os.chdir(original_dir)
     shutil.rmtree(TMP)
+    for k, v in grades.items():
+        print(k, v)
     return grades
 
 def extract_submissions(submissions, assignment_name):
