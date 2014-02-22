@@ -1,10 +1,6 @@
 """
 grade.py - A tool for autograding with moodle
 
-Each assignment gets it own function for grading in grade_functions.py.
-To add a new assignment, add the function to grade_functions.py and then
-put a reference to it in the global ASSIGNMENTS dictionary.
-
 """
 
 import os
@@ -13,17 +9,12 @@ import stat
 import sys
 import shutil
 import zipfile
-import grade_functions
 import subprocess
 import signal
 import argparse
 
 from subprocess import Popen, PIPE
 
-
-COURSE_NAME = 'CSCI1300-S14-Hoenigman'
-
-# constants for printing colors
 GREEN = '\033[92m'
 RED = '\033[91m'
 ENDC = '\033[0m'
@@ -31,6 +22,7 @@ ENDC = '\033[0m'
 ORIG_DIR = os.getcwd()
 TMP = 'autograder_tmpdir'
 
+# make ctrl-c work incase student code goes into infinite loop
 def signal_handler(signal, frame):
     tmp_dir = '/'.join([ORIG_DIR, TMP])
     if os.path.exists(tmp_dir):
@@ -78,7 +70,7 @@ def get_submissions(submission_dir, names):
 
     return submission_names, submissions_not_found
 
-def grade_assignment(submission_dir, submission_names, grade_dir):
+def grade_assignment(submission_dir, submission_names, grader_zip):
     """
     Returns a dict where keys are the student moodle name and values are the
     student's grade.
@@ -102,14 +94,14 @@ def grade_assignment(submission_dir, submission_names, grade_dir):
             if s.endswith('.zip'):
                 try:
                     subprocess.check_call(['unzip', '-d', name, os.path.join(submission_dir, s)])
-                    subprocess.check_call(['unzip', '-d', name, grade_dir])
+                    subprocess.check_call(['unzip', '-d', name, grader_zip])
 
                 except Exception as err:
                     print('Error unzipping files:', err)
 
                 try:
                     os.chdir(name)
-                    grade_dir_stem = grade_dir.split('.')[0].split('/')[-1]
+                    grade_dir_stem = grader_zip.split('.')[0].split('/')[-1]
 
                     for filename in os.listdir(grade_dir_stem):
                         shutil.move('/'.join([grade_dir_stem, filename]), os.getcwd())
@@ -141,6 +133,10 @@ def grade_assignment(submission_dir, submission_names, grade_dir):
     return grades
 
 def extract_submissions(submissions, assignment_name):
+    """
+    Extract submissions from zip file into directory [assignment_name]_submissions.
+
+    """
     if not os.path.exists(assignment_name + '_submissions'):
         os.mkdir(assignment_name + '_submissions')
     try:
@@ -153,7 +149,7 @@ def extract_submissions(submissions, assignment_name):
 
 def generate_grade_csv(grades, moodle_grade_csv, assignment_name):
     """
-    Writes over the moodle_grade_csv file with the grades added in place of the old grade.
+    Writes a new csv file for submitting to moodle in directory [assignment_name]_csv.
 
     """
     if not os.path.exists(assignment_name + '_csv'):
@@ -211,13 +207,13 @@ def main():
     # output grades into csv
     generate_grade_csv(grades, moodle_grade_csv, assignment_name)
 
-    failed_dir = 'failed_' + submission_dir.split('/')[-1]
+    # failed_dir = 'failed_' + submission_dir.split('/')[-1]
 
     print(RED + '\nNAMES NOT FOUND\n' + ('_' * 15))
     for name in not_found:
         print(name)
 
-    print(ENDC + GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
+    # print(ENDC + GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
 
 if __name__ == '__main__':
     main()
