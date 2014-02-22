@@ -33,7 +33,7 @@ Running the Autograder
 Run the following command:
 
 ```
-python3 grade.py [assignment name] [grade export csv] [submission zip file] [grade script zip file downloaded from moodle]
+python3 grade.py [assignment name] [grade export csv] [submission zip file] [grade script zip file]
 ```
 
 Note that the assignment name argument is arbitrary, it is just used for naming the
