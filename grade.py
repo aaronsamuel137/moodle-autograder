@@ -91,6 +91,7 @@ def grade_assignment(submission_dir, submission_names, grader_zip):
     for name, submissions in submission_names.items():
         student_dir = os.mkdir(name)
         for s in submissions:
+
             if s.endswith('.zip'):
                 try:
                     student_zip = os.path.join(submission_dir, s)
@@ -99,46 +100,62 @@ def grade_assignment(submission_dir, submission_names, grader_zip):
                 except Exception as err:
                     print('Error unzipping files:', err)
 
-                try:
-                    os.chdir(name)
+            elif s.endswith('.java'):
+                shutil.move(os.path.join(submission_dir, s), name)
 
-                    current_dir = os.listdir()
-
-                    if any(os.path.isdir(f) for f in current_dir):
-                        try:
-                            sub_dir = [f for f in current_dir if '__MACOSX' not in f][0]
-                            for filename in os.listdir(sub_dir):
-                                shutil.move('/'.join([sub_dir, filename]), os.getcwd())
-                        except:
-                            pass
-
-                    subprocess.check_call(['unzip', '-d', os.getcwd(), grader_zip])
-                    grade_dir_stem = grader_zip.split('.')[0].split('/')[-1]
-                    for filename in os.listdir(grade_dir_stem):
-                        if not os.path.exists(filename):
-                            shutil.move('/'.join([grade_dir_stem, filename]), os.getcwd())
-
-                    grade_script = os.path.join(os.getcwd(), 'Grading_Script.py')
-                    st = os.stat(grade_script)
-                    os.chmod(grade_script, st.st_mode | stat.S_IEXEC)
-
-                    cmd = grade_script
-                    p = Popen(cmd, stdout=PIPE, stderr=PIPE)
-                    stdout, stderr = p.communicate()
-                    output = stderr.decode().strip()
-                    if '100' in output:
-                        grades[name] = 100
-                    else:
-                        grades[name] = 0
-                    print(GREEN, '\nOUTPUT\n------\n{}\n------\n'.format(output), ENDC)
-                    print('GRADE:', grades[name])
-
-                except Exception as err:
-                    print('Error running script', err)
-
-                os.chdir(tmp_dir)
             else:
-                print('Got non-zip submission:', s)
+                print('Got non-zip or java submission:', s)
+                continue
+
+            try:
+                os.chdir(name)
+
+                current_dir = os.listdir()
+
+                if any(os.path.isdir(f) for f in current_dir):
+                    try:
+                        sub_dir = [f for f in current_dir if '__MACOSX' not in f][0]
+                        for filename in os.listdir(sub_dir):
+                            shutil.move('/'.join([sub_dir, filename]), os.getcwd())
+                    except:
+                        pass
+
+                for f in current_dir:
+                    if f.endswith('.java'):
+                        splitted = f.split('_file_')
+                        if len(splitted) == 2:
+                            print(f, splitted[1])
+                            os.rename(f, splitted[1])
+
+                subprocess.check_call(['unzip', '-d', os.getcwd(), grader_zip])
+                grade_dir_stem = grader_zip.split('.')[0].split('/')[-1]
+                for filename in os.listdir(grade_dir_stem):
+                    if not os.path.exists(filename):
+                        shutil.move('/'.join([grade_dir_stem, filename]), os.getcwd())
+
+                grade_script = os.path.join(os.getcwd(), 'Grading_Script.py')
+                st = os.stat(grade_script)
+                os.chmod(grade_script, st.st_mode | stat.S_IEXEC)
+
+                # cmd = grade_script
+                # p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+                # stdout, stderr = p.communicate()
+                # output = stderr.decode().strip()
+                output = subprocess.check_output([grade_script])
+                output_str = output.decode()
+                print(output_str)
+
+                if '100' in output_str:
+                    grades[name] = 100
+                else:
+                    grades[name] = 0
+                print(GREEN, '\nOUTPUT\n------\n{}\n------\n'.format(output), ENDC)
+                print('GRADE:', grades[name])
+
+            except Exception as err:
+                print('Error running script', err)
+
+            os.chdir(tmp_dir)
 
     os.chdir(original_dir)
     shutil.rmtree(TMP)
