@@ -20,23 +20,6 @@ COURSE_NAME = 'CSCI1300-S14-Hoenigman'
 GREEN = '\033[92m'
 ENDC = '\033[0m'
 
-# put references to new grading functions here
-ASSIGNMENTS = {
-    'assign_1': grade_functions.grade_assign_1,
-    'recitation_1': grade_functions.grade_recitation_1,
-    'assign_2': grade_functions.grade_assign_2,
-}
-
-def get_assignment_function(assignment):
-    """Returns a reference to the grading function for the given assignment."""
-    try:
-        return ASSIGNMENTS[assignment]
-    except KeyError:
-        print('ERROR: Invalid assignment name. Please enter one of:')
-        for assign in ASSIGNMENTS:
-            print('\t' + assign)
-        exit()
-
 def get_moodle_students(filename):
     """
     Returns a list of moodle student names. The argument filename is a grade export of
@@ -76,7 +59,7 @@ def get_submissions(submission_dir, names):
 
     return submission_names, submissions_not_found
 
-def grade_assignment(submission_dir, submission_names, grade_function):
+def grade_assignment(submission_dir, submission_names):
     """
     Returns a dict where keys are the student moodle name and values are the
     student's grade.
@@ -84,7 +67,7 @@ def grade_assignment(submission_dir, submission_names, grade_function):
     """
     grades = {}
     for name, submissions in submission_names.items():
-        grades[name] = grade_function(submission_dir, submissions)
+        grades[name] = 100
     return grades
 
 def copy_files_from_downloads(assignment_name):
@@ -129,12 +112,12 @@ def generate_grade_csv(grades, moodle_grade_csv):
     """
     lines = open(moodle_grade_csv).readlines()
 
-    with open(moodle_grade_csv, 'w') as f:
+    with open('output.csv', 'w') as f:
         f.write(lines[0])
         for line in lines[1:]:
             fields = line.split(',')
-            firstname = fields[0].replace('"', '').strip()
-            lastname = fields[1].replace('"', '').strip()
+            firstname = fields[0].replace('"', '').replace("'", '').strip()
+            lastname = fields[1].replace('"', '').replace("'", '').strip()
             name = "{} {}".format(firstname, lastname)
             fields.pop()
             if name in grades:
@@ -146,23 +129,19 @@ def generate_grade_csv(grades, moodle_grade_csv):
 
 if __name__ == '__main__':
     # run with one arg: automatically copy files from Downloads
-    if len(sys.argv) == 2:
-        assignment_name = sys.argv[1]
-        grading_function = get_assignment_function(assignment_name)
+    if len(sys.argv) == 1:
         submission_dir, moodle_grade_csv = copy_files_from_downloads(assignment_name)
 
     # run with three args: specify files to use for grading
-    elif len(sys.argv) == 4:
-        assignment_name = sys.argv[1]
-        grading_function = get_assignment_function(assignment_name)
-        submission_dir = sys.argv[2]
-        moodle_grade_csv = sys.argv[3]
+    elif len(sys.argv) == 3:
+        submission_dir = sys.argv[1]
+        moodle_grade_csv = sys.argv[2]
     else:
         print('Error! Wrong number of arguments')
 
     names = get_moodle_students(moodle_grade_csv)
     submissions, not_found = get_submissions(submission_dir, names)
-    grades = grade_assignment(submission_dir, submissions, grading_function)
+    grades = grade_assignment(submission_dir, submissions)
     generate_grade_csv(grades, moodle_grade_csv)
 
     failed_dir = 'failed_' + submission_dir.split('/')[-1]
