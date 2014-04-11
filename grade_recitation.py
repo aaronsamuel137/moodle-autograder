@@ -1,9 +1,30 @@
 """
-grade.py - A tool for autograding with moodle
+grade_recitation.py - Grades a moodle assignment as 100 if there is a submission,
+    or 0 otherwise
 
-Each assignment gets it own function for grading in grade_functions.py.
-To add a new assignment, add the function to grade_functions.py and then
-put a reference to it in the global ASSIGNMENTS dictionary.
+Usage
+=====
+1. Go to moodle and export grades for the assignment you want.
+To do this, go to Grade administration -> Export -> Plain text file. Then select your
+grade group under the "Visible groups" drop down. Then go to the bottom and click
+"Select all/none" to unselect all assignments. Then select the single assignment to
+be graded now. This will download a csv of all student names with an empty field ready for
+grades.
+2. Download all of the submissions for this assignment from moodle and unzip.
+3. Run python grade.py [directory with submissions] [grade export csv]
+
+  The autograder will first print a list of all the students it couldn't find submissions
+for who are registered on moodle.
+
+4. There will be a new file output.csv with the grades.
+5. Go to moodle and select import csv. Import the output csv. Be sure to change
+the dropdowns "Map to" and "Map from" under "Identify user by" to say "Email address".
+Also change to the grade field to map to the correct assignment.
+
+Example Usage
+=============
+
+python3 grade_recitation.py ~/Downloads/CSCI1300-S14-Hoenigman-Recitation\ 11\ submit--9850 ~/Downloads/CSCI1300-S14-Hoenigman\ Grades-20140411_2049-comma_separated.csv
 
 """
 
@@ -11,8 +32,6 @@ import os
 import sys
 import shutil
 import zipfile
-import grade_functions
-from os.path import expanduser
 
 COURSE_NAME = 'CSCI1300-S14-Hoenigman'
 
@@ -70,41 +89,6 @@ def grade_assignment(submission_dir, submission_names):
         grades[name] = 100
     return grades
 
-def copy_files_from_downloads(assignment_name):
-    """
-    Copies the zip archive of submissions and grade csv from moodle into the autograder
-    directory. Each gets a folder created for it to ensure organization. The zip archive
-    is extracted. Returns the names of each of these files.
-
-    """
-    home = expanduser('~')
-    downloads = os.path.join(home, 'Downloads')
-    for filename in os.listdir(downloads):
-        if COURSE_NAME in filename:
-            if 'recitation' in filename.lower():
-                print(filename)
-
-                if not os.path.exists(assignment_name + '_submissions'):
-                    os.mkdir(assignment_name + '_submissions')
-                try:
-                    submission_dir = os.path.join(os.getcwd(), assignment_name + '_submissions')
-                    shutil.copy(os.path.join(downloads, filename), submission_dir)
-                    zipfile.ZipFile(os.path.join(submission_dir, filename)).extractall(submission_dir)
-                except Exception as e:
-                    print('Error copying zip archive: {}'.format(e))
-
-            else:
-                if not os.path.exists(assignment_name + '_csv'):
-                    os.mkdir(assignment_name + '_csv')
-                try:
-                    grade_csv_dir = os.path.join(os.getcwd(), assignment_name + '_csv')
-                    shutil.copy(os.path.join(downloads, filename), grade_csv_dir)
-                    grade_csv = os.path.join(grade_csv_dir, filename)
-                except Exception as e:
-                    print('Error copying csv file: {}'.format(e))
-
-    return submission_dir, grade_csv
-
 def generate_grade_csv(grades, moodle_grade_csv):
     """
     Writes over the moodle_grade_csv file with the grades added in place of the old grade.
@@ -128,12 +112,8 @@ def generate_grade_csv(grades, moodle_grade_csv):
             f.write(line)
 
 if __name__ == '__main__':
-    # run with one arg: automatically copy files from Downloads
-    if len(sys.argv) == 1:
-        submission_dir, moodle_grade_csv = copy_files_from_downloads(assignment_name)
 
-    # run with three args: specify files to use for grading
-    elif len(sys.argv) == 3:
+    if len(sys.argv) == 3:
         submission_dir = sys.argv[1]
         moodle_grade_csv = sys.argv[2]
     else:
@@ -144,10 +124,6 @@ if __name__ == '__main__':
     grades = grade_assignment(submission_dir, submissions)
     generate_grade_csv(grades, moodle_grade_csv)
 
-    failed_dir = 'failed_' + submission_dir.split('/')[-1]
-
-    print('\nNAMES NOT FOUND\n' + ('_' * 15))
+    print('\nNAMES NOT GRADED\n' + ('_' * 15))
     for name in not_found:
         print(name)
-
-    print(GREEN + '\nAll failed submissions have been copied to directory "{}"'.format(failed_dir) + ENDC)
